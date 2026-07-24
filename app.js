@@ -1,6 +1,6 @@
 const CHEERPX_URL = "https://cxrtnc.leaningtech.com/1.2.8/cx.esm.js";
-const DISK_URL = new URL("./xfce.ext2?v=10", window.location.href).href;
-const OVERLAY_NAME = "webvm-xfce-overlay-v10";
+const DISK_URL = new URL("./xfce.ext2?v=11", window.location.href).href;
+const OVERLAY_NAME = "webvm-xfce-overlay-v11";
 const COI_RELOAD_KEY = "webvm-xfce-coi-reloaded-v1";
 
 const statusElement = document.getElementById("status");
@@ -163,7 +163,7 @@ async function startVm(withNetwork) {
 
     splash.hidden = true;
     canvas.focus();
-    setStatus(withNetwork ? "Starting XFCE and network..." : "Starting XFCE...");
+    setStatus(withNetwork ? "Linux started. Waiting for XFCE and network..." : "Linux started. Waiting for XFCE display...");
 
     cx.run("/usr/local/bin/webvm-xfce-start", [], {
       uid: 0,
