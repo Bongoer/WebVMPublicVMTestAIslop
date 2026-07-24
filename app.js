@@ -1,6 +1,6 @@
 const CHEERPX_URL = "https://cxrtnc.leaningtech.com/1.2.8/cx.esm.js";
 const DISK_URL = new URL("./xfce.ext2", window.location.href).href;
-const OVERLAY_NAME = "webvm-xfce-overlay-v1";
+const OVERLAY_NAME = "webvm-xfce-overlay-v2";
 const COI_RELOAD_KEY = "webvm-xfce-coi-reloaded-v1";
 
 const statusElement = document.getElementById("status");
@@ -152,6 +152,11 @@ async function startVm(withNetwork) {
     cx.setConsole(consoleElement);
 
     resizeDisplay();
+
+    let completeConsoleSwitch;
+    completeConsoleSwitch = cx.setActivateConsole((index) => {
+      completeConsoleSwitch(index);
+    });
     window.addEventListener("resize", scheduleResize);
     canvas.addEventListener("pointerdown", () => canvas.focus());
 
