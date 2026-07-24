@@ -20,7 +20,6 @@ mkdir -p \
   "$XDG_CACHE_HOME"
 
 chmod 700 "$XDG_RUNTIME_DIR"
-
 rm -rf "$XDG_CACHE_HOME/sessions"
 
 echo "[5/8] Starting XFCE session bus"
@@ -50,7 +49,7 @@ fi
 export DBUS_SESSION_BUS_ADDRESS
 export DBUS_SESSION_BUS_PID
 
-echo "[6/8] Starting XFCE window manager"
+echo "[6/8] Starting XFCE window manager and settings"
 
 /usr/bin/xfwm4 \
   --replace \
@@ -58,38 +57,16 @@ echo "[6/8] Starting XFCE window manager"
 
 wm_pid=$!
 
-sleep 1
-
-if ! kill -0 "$wm_pid" 2>/dev/null
-then
-  echo "ERROR: xfwm4 failed."
-  cat /tmp/xfwm4.log
-  exit 1
-fi
-
-echo "[7/8] Starting XFCE desktop"
-
 /usr/bin/xfsettingsd \
   --replace \
   >/tmp/xfsettingsd.log 2>&1 &
 
-/usr/bin/thunar \
-  --daemon \
-  >/tmp/thunar.log 2>&1 &
+echo "[7/8] Starting XFCE desktop"
 
 /usr/bin/xfdesktop \
   >/tmp/xfdesktop.log 2>&1 &
 
 desktop_pid=$!
-
-sleep 1
-
-if ! kill -0 "$desktop_pid" 2>/dev/null
-then
-  echo "ERROR: xfdesktop failed."
-  cat /tmp/xfdesktop.log
-  exit 1
-fi
 
 echo "[8/8] Starting XFCE panel"
 
@@ -99,20 +76,28 @@ echo "[8/8] Starting XFCE panel"
 
 panel_pid=$!
 
-sleep 1
+sleep 0.25
 
-if ! kill -0 "$panel_pid" 2>/dev/null
-then
-  echo "ERROR: xfce4-panel failed."
-  cat /tmp/xfce4-panel.log
-  exit 1
-fi
-
-/usr/bin/xfce4-terminal \
-  --disable-server \
-  --title="XFCE Browser VM" \
-  >/tmp/xfce4-terminal.log 2>&1 &
+for component in "$wm_pid" "$desktop_pid" "$panel_pid"
+do
+  if ! kill -0 "$component" 2>/dev/null
+  then
+    echo "ERROR: An XFCE component failed."
+    cat /tmp/xfwm4.log
+    cat /tmp/xfdesktop.log
+    cat /tmp/xfce4-panel.log
+    exit 1
+  fi
+done
 
 echo "PURE_XFCE_COMPONENTS_READY"
+
+(
+  sleep 1
+  /usr/bin/xfce4-terminal \
+    --disable-server \
+    --title="XFCE Browser VM" \
+    >/tmp/xfce4-terminal.log 2>&1
+) &
 
 wait "$wm_pid"

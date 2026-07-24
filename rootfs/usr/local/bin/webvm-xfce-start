@@ -27,9 +27,7 @@ chmod 1777 /tmp
 chmod 1777 /tmp/.X11-unix
 chmod 1777 /tmp/.ICE-unix
 chmod 700 /tmp/runtime-user
-
 chown user:user /tmp/runtime-user
-chown -R user:user /home/user
 
 rm -f /tmp/.X11-unix/X0
 rm -f /tmp/.X0-lock
@@ -67,13 +65,13 @@ do
 
   attempt=$((attempt + 1))
 
-  if [ "$attempt" -ge 60 ]
+  if [ "$attempt" -ge 300 ]
   then
     echo "ERROR: Xorg did not create display :0."
     exit 1
   fi
 
-  sleep 1
+  sleep 0.1
 done
 
 echo "[4/4] Entering XFCE user session"

@@ -1,6 +1,6 @@
 const CHEERPX_URL = "https://cxrtnc.leaningtech.com/1.2.8/cx.esm.js";
-const SYSTEM_IMAGE_URL = new URL("./xfce.ext2?v=26", location.href).href;
-const OVERLAY_NAME = "webvm-linux-overlay-v26";
+const SYSTEM_IMAGE_URL = new URL("./xfce.ext2?v=28", location.href).href;
+const OVERLAY_NAME = "webvm-linux-overlay-v28";
 const COI_RELOAD_KEY = "webvm-coi-v26";
 
 const statusElement = document.getElementById("status");
