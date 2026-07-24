@@ -7,7 +7,17 @@ export LOGNAME=root
 export SHELL=/bin/sh
 export DISPLAY=:0
 
-echo "[1/4] Preparing Linux graphical environment"
+xorg_pid=""
+xfce_pid=""
+
+cleanup() {
+  [ -n "$xfce_pid" ] && kill "$xfce_pid" 2>/dev/null || true
+  [ -n "$xorg_pid" ] && kill "$xorg_pid" 2>/dev/null || true
+}
+
+trap cleanup EXIT INT TERM
+
+echo "[1/4] Preparing Linux display"
 
 mkdir -p /tmp/.X11-unix
 mkdir -p /tmp/runtime-user
@@ -22,26 +32,68 @@ chown -R user:user /home/user
 rm -f /tmp/.X11-unix/X0
 rm -f /tmp/.X0-lock
 
-echo "[2/4] Detecting browser display hardware"
+echo "[2/4] Starting graphical server"
 
-if [ -x /sbin/udevd ]; then
-  /sbin/udevd --daemon || true
-fi
-
-if [ -x /sbin/udevadm ]; then
-  timeout 10 /sbin/udevadm trigger --action=add || true
-  timeout 15 /sbin/udevadm settle || true
-fi
-
-echo "[3/4] Starting graphical display on VT7"
-
-exec /usr/bin/xinit \
-  /usr/local/bin/webvm-xfce-client \
-  -- \
-  /usr/bin/Xorg \
+/usr/bin/Xorg \
   :0 \
   vt7 \
   -keeptty \
   -noreset \
   -nolisten tcp \
-  -ac
+  -ac \
+  -retro &
+
+xorg_pid=$!
+
+echo "[3/4] Waiting for graphical socket"
+
+attempt=0
+
+while [ ! -S /tmp/.X11-unix/X0 ]
+do
+  if ! kill -0 "$xorg_pid" 2>/dev/null
+  then
+    echo "ERROR: Xorg stopped before creating the display."
+    wait "$xorg_pid"
+    exit 1
+  fi
+
+  attempt=$((attempt + 1))
+
+  if [ "$attempt" -ge 60 ]
+  then
+    echo "ERROR: Xorg did not create its display socket."
+    exit 1
+  fi
+
+  sleep 1
+done
+
+echo "[4/4] Starting XFCE desktop"
+
+su-exec user env \
+  HOME=/home/user \
+  USER=user \
+  LOGNAME=user \
+  SHELL=/bin/sh \
+  DISPLAY=:0 \
+  XDG_RUNTIME_DIR=/tmp/runtime-user \
+  XDG_CONFIG_HOME=/home/user/.config \
+  XDG_CURRENT_DESKTOP=XFCE \
+  DESKTOP_SESSION=xfce \
+  dbus-run-session /usr/bin/xfce4-session &
+
+xfce_pid=$!
+
+sleep 5
+
+if ! kill -0 "$xfce_pid" 2>/dev/null
+then
+  echo "ERROR: XFCE stopped during startup."
+  wait "$xfce_pid"
+  exit 1
+fi
+
+echo "XFCE process is running."
+
+wait "$xfce_pid"

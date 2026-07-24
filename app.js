@@ -1,7 +1,7 @@
 const CHEERPX_URL = "https://cxrtnc.leaningtech.com/1.2.8/cx.esm.js";
-const SYSTEM_IMAGE_URL = new URL("./xfce.ext2?v=17", location.href).href;
-const OVERLAY_NAME = "webvm-linux-overlay-v17";
-const COI_RELOAD_KEY = "webvm-coi-v17";
+const SYSTEM_IMAGE_URL = new URL("./xfce.ext2?v=18", location.href).href;
+const OVERLAY_NAME = "webvm-linux-overlay-v18";
+const COI_RELOAD_KEY = "webvm-coi-v18";
 
 const statusElement = document.getElementById("status");
 const canvas = document.getElementById("display");
@@ -40,7 +40,7 @@ async function ensureCrossOriginIsolation() {
     throw new Error("Service workers are unavailable in this browser.");
   }
 
-  await navigator.serviceWorker.register("./coi-sw.js?v=17", {
+  await navigator.serviceWorker.register("./coi-sw.js?v=18", {
     scope: "./"
   });
 
@@ -97,14 +97,14 @@ function handleConsoleSwitch(vt) {
     canvas.hidden = false;
     consoleElement.hidden = true;
     logsButton.textContent = "Logs";
-    setStatus("Graphical display selected. XFCE is loading...");
+    setStatus("Graphical output selected. Waiting for the desktop...");
     canvas.focus();
     return;
   }
 
   consoleElement.hidden = false;
   logsButton.textContent = "Hide logs";
-  setStatus("Starting Linux graphical services...");
+  setStatus("Starting Linux display...");
 }
 
 function createNetworkConfiguration() {
@@ -220,7 +220,7 @@ async function startVm(withNetwork) {
       canvas.focus();
     });
 
-    setStatus("Starting Linux graphical services...");
+    setStatus("Starting Linux display...");
 
     cx.run("/usr/local/bin/webvm-xfce-start", [], {
       uid: 0,
