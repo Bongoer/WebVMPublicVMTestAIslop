@@ -1,7 +1,7 @@
 const CHEERPX_URL = "https://cxrtnc.leaningtech.com/1.2.8/cx.esm.js";
-const SYSTEM_IMAGE_URL = new URL("./xfce.ext2?v=25", location.href).href;
-const OVERLAY_NAME = "webvm-linux-overlay-v25";
-const COI_RELOAD_KEY = "webvm-coi-v25";
+const SYSTEM_IMAGE_URL = new URL("./xfce.ext2?v=26", location.href).href;
+const OVERLAY_NAME = "webvm-linux-overlay-v26";
+const COI_RELOAD_KEY = "webvm-coi-v26";
 
 const statusElement = document.getElementById("status");
 const canvas = document.getElementById("display");
@@ -40,7 +40,7 @@ async function ensureCrossOriginIsolation() {
     throw new Error("Service workers are unavailable in this browser.");
   }
 
-  await navigator.serviceWorker.register("./coi-sw.js?v=25", {
+  await navigator.serviceWorker.register("./coi-sw.js?v=26", {
     scope: "./"
   });
 
@@ -91,20 +91,28 @@ function scheduleResize() {
 }
 
 function handleConsoleSwitch(vt) {
-  completeConsoleSwitch(vt);
-
   if (vt === 7) {
     canvas.hidden = false;
     consoleElement.hidden = true;
     logsButton.textContent = "Logs";
-    setStatus("Graphical display connected. Waiting for XFCE...");
-    canvas.focus();
+    setStatus("Graphical display selected. Starting XFCE...");
+
+    requestAnimationFrame(() => {
+      resizeDisplay();
+      canvas.focus();
+
+      requestAnimationFrame(() => {
+        completeConsoleSwitch(vt);
+      });
+    });
+
     return;
   }
 
   consoleElement.hidden = false;
   logsButton.textContent = "Hide logs";
-  setStatus("Starting Linux display...");
+  setStatus(`Linux console VT ${vt}`);
+  completeConsoleSwitch(vt);
 }
 
 function createNetworkConfiguration() {
@@ -269,6 +277,36 @@ async function resetVm() {
     setStatus(`Reset failed: ${error.message}`);
   }
 }
+
+
+const xfceReadyObserver = new MutationObserver(() => {
+  if (!consoleElement.textContent.includes("PURE_XFCE_COMPONENTS_READY")) {
+    return;
+  }
+
+  setStatus("XFCE desktop ready.");
+
+  canvas.hidden = false;
+  consoleElement.hidden = true;
+  logsButton.textContent = "Logs";
+
+  requestAnimationFrame(() => {
+    resizeDisplay();
+    canvas.focus();
+
+    setTimeout(() => {
+      resizeDisplay();
+    }, 300);
+  });
+
+  xfceReadyObserver.disconnect();
+});
+
+xfceReadyObserver.observe(consoleElement, {
+  childList: true,
+  subtree: true,
+  characterData: true
+});
 
 startButton.addEventListener("click", () => startVm(false));
 networkButton.addEventListener("click", () => startVm(true));
