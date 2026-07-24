@@ -10,16 +10,18 @@ export DISPLAY=:0
 xorg_pid=""
 
 cleanup() {
-  [ -n "$xorg_pid" ] && kill "$xorg_pid" 2>/dev/null || true
+  [ -n "$xorg_pid" ] &&
+    kill "$xorg_pid" 2>/dev/null || true
 }
 
 trap cleanup EXIT INT TERM
 
-echo "[1/7] Preparing XFCE display"
+echo "[1/4] Preparing XFCE display"
 
-mkdir -p /tmp/.X11-unix
-mkdir -p /tmp/.ICE-unix
-mkdir -p /tmp/runtime-user
+mkdir -p \
+  /tmp/.X11-unix \
+  /tmp/.ICE-unix \
+  /tmp/runtime-user
 
 chmod 1777 /tmp
 chmod 1777 /tmp/.X11-unix
@@ -31,9 +33,10 @@ chown -R user:user /home/user
 
 rm -f /tmp/.X11-unix/X0
 rm -f /tmp/.X0-lock
-rm -rf /home/user/.cache/sessions
 
-echo "[2/7] Starting Xorg"
+dbus-uuidgen --ensure=/etc/machine-id 2>/dev/null || true
+
+echo "[2/4] Starting Xorg"
 
 /usr/bin/Xorg \
   :0 \
@@ -49,7 +52,7 @@ echo "[2/7] Starting Xorg"
 
 xorg_pid=$!
 
-echo "[3/7] Waiting for graphical display"
+echo "[3/4] Waiting for graphical display"
 
 attempt=0
 
@@ -73,96 +76,7 @@ do
   sleep 1
 done
 
-echo "[4/7] Starting pure XFCE environment"
+echo "[4/4] Entering XFCE user session"
 
-exec su-exec user env \
-  HOME=/home/user \
-  USER=user \
-  LOGNAME=user \
-  SHELL=/bin/sh \
-  DISPLAY=:0 \
-  XDG_RUNTIME_DIR=/tmp/runtime-user \
-  XDG_CONFIG_HOME=/home/user/.config \
-  XDG_CURRENT_DESKTOP=XFCE \
-  DESKTOP_SESSION=xfce \
-  GDK_BACKEND=x11 \
-  XLIB_SKIP_ARGB_VISUALS=1 \
-  dbus-run-session sh -c '
-    mkdir -p \
-      /home/user/.config/xfce4/xfconf/xfce-perchannel-xml
-
-    if [ -f /etc/xdg/xfce4/panel/default.xml ] &&
-       [ ! -f /home/user/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml ]
-    then
-      cp \
-        /etc/xdg/xfce4/panel/default.xml \
-        /home/user/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml
-    fi
-
-    echo "[5/7] Starting XFCE window manager"
-
-    /usr/bin/xfwm4 \
-      --replace \
-      >/tmp/xfwm4.log 2>&1 &
-
-    wm_pid=$!
-
-    sleep 3
-
-    if ! kill -0 "$wm_pid" 2>/dev/null
-    then
-      echo "ERROR: xfwm4 failed."
-      cat /tmp/xfwm4.log
-      exit 1
-    fi
-
-    echo "[6/7] Starting XFCE desktop and settings"
-
-    /usr/bin/xfsettingsd \
-      --replace \
-      >/tmp/xfsettingsd.log 2>&1 &
-
-    /usr/bin/thunar \
-      --daemon \
-      >/tmp/thunar.log 2>&1 &
-
-    /usr/bin/xfdesktop \
-      >/tmp/xfdesktop.log 2>&1 &
-
-    desktop_pid=$!
-
-    sleep 4
-
-    if ! kill -0 "$desktop_pid" 2>/dev/null
-    then
-      echo "ERROR: xfdesktop failed."
-      cat /tmp/xfdesktop.log
-      exit 1
-    fi
-
-    echo "[7/7] Starting XFCE panel"
-
-    /usr/bin/xfce4-panel \
-      --disable-wm-check \
-      >/tmp/xfce4-panel.log 2>&1 &
-
-    panel_pid=$!
-
-    sleep 4
-
-    if ! kill -0 "$panel_pid" 2>/dev/null
-    then
-      echo "ERROR: xfce4-panel failed."
-      cat /tmp/xfce4-panel.log
-      exit 1
-    fi
-
-    /usr/bin/xfce4-terminal \
-      --disable-server \
-      --title="XFCE Browser VM" \
-      >/tmp/xfce4-terminal.log 2>&1 &
-
-    echo "PURE_XFCE_COMPONENTS_READY"
-
-    wait "$wm_pid"
-  '
+exec su-exec user \
+  /usr/local/bin/webvm-xfce-session

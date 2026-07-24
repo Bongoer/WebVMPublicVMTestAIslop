@@ -87,7 +87,7 @@ RUN adduser -D -s /bin/bash user && \
 COPY --from=xfwm_builder /out/usr/ /usr/
 COPY rootfs/ /
 
-RUN chmod 755 /usr/local/bin/webvm-xfce-start && \
+RUN chmod 755 /usr/local/bin/webvm-xfce-start /usr/local/bin/webvm-xfce-session && \
     if [ -f /usr/local/bin/webvm-resize ]; then \
       chmod 755 /usr/local/bin/webvm-resize; \
     fi && \

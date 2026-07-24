@@ -1,0 +1,118 @@
+#!/bin/sh
+set -u
+
+export HOME=/home/user
+export USER=user
+export LOGNAME=user
+export SHELL=/bin/sh
+export DISPLAY=:0
+export XDG_RUNTIME_DIR=/tmp/runtime-user
+export XDG_CONFIG_HOME=/home/user/.config
+export XDG_CACHE_HOME=/home/user/.cache
+export XDG_CURRENT_DESKTOP=XFCE
+export DESKTOP_SESSION=xfce
+export GDK_BACKEND=x11
+export XLIB_SKIP_ARGB_VISUALS=1
+
+mkdir -p \
+  "$XDG_RUNTIME_DIR" \
+  "$XDG_CONFIG_HOME/xfce4/xfconf/xfce-perchannel-xml" \
+  "$XDG_CACHE_HOME"
+
+chmod 700 "$XDG_RUNTIME_DIR"
+
+rm -rf "$XDG_CACHE_HOME/sessions"
+
+echo "[5/8] Starting XFCE session bus"
+
+dbus_result="$(
+  dbus-daemon \
+    --session \
+    --fork \
+    --print-address=1 \
+    --print-pid=1
+)"
+
+DBUS_SESSION_BUS_ADDRESS="$(
+  printf '%s\n' "$dbus_result" | sed -n '1p'
+)"
+
+DBUS_SESSION_BUS_PID="$(
+  printf '%s\n' "$dbus_result" | sed -n '2p'
+)"
+
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]
+then
+  echo "ERROR: Session D-Bus did not return an address."
+  exit 1
+fi
+
+export DBUS_SESSION_BUS_ADDRESS
+export DBUS_SESSION_BUS_PID
+
+echo "[6/8] Starting XFCE window manager"
+
+/usr/bin/xfwm4 \
+  --replace \
+  >/tmp/xfwm4.log 2>&1 &
+
+wm_pid=$!
+
+sleep 1
+
+if ! kill -0 "$wm_pid" 2>/dev/null
+then
+  echo "ERROR: xfwm4 failed."
+  cat /tmp/xfwm4.log
+  exit 1
+fi
+
+echo "[7/8] Starting XFCE desktop"
+
+/usr/bin/xfsettingsd \
+  --replace \
+  >/tmp/xfsettingsd.log 2>&1 &
+
+/usr/bin/thunar \
+  --daemon \
+  >/tmp/thunar.log 2>&1 &
+
+/usr/bin/xfdesktop \
+  >/tmp/xfdesktop.log 2>&1 &
+
+desktop_pid=$!
+
+sleep 1
+
+if ! kill -0 "$desktop_pid" 2>/dev/null
+then
+  echo "ERROR: xfdesktop failed."
+  cat /tmp/xfdesktop.log
+  exit 1
+fi
+
+echo "[8/8] Starting XFCE panel"
+
+/usr/bin/xfce4-panel \
+  --disable-wm-check \
+  >/tmp/xfce4-panel.log 2>&1 &
+
+panel_pid=$!
+
+sleep 1
+
+if ! kill -0 "$panel_pid" 2>/dev/null
+then
+  echo "ERROR: xfce4-panel failed."
+  cat /tmp/xfce4-panel.log
+  exit 1
+fi
+
+/usr/bin/xfce4-terminal \
+  --disable-server \
+  --title="XFCE Browser VM" \
+  >/tmp/xfce4-terminal.log 2>&1 &
+
+echo "PURE_XFCE_COMPONENTS_READY"
+
+wait "$wm_pid"
