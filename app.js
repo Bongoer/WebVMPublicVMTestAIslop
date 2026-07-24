@@ -1,6 +1,6 @@
 const CHEERPX_URL = "https://cxrtnc.leaningtech.com/1.2.8/cx.esm.js";
-const SYSTEM_IMAGE_URL = new URL("./xfce.ext2?v=28", location.href).href;
-const OVERLAY_NAME = "webvm-linux-overlay-v28";
+const SYSTEM_IMAGE_URL = new URL("./xfce.ext2?v=29", location.href).href;
+const OVERLAY_NAME = "webvm-linux-overlay-v29";
 const COI_RELOAD_KEY = "webvm-coi-v26";
 
 const statusElement = document.getElementById("status");
@@ -91,20 +91,20 @@ function scheduleResize() {
 }
 
 function handleConsoleSwitch(vt) {
-  completeConsoleSwitch(vt);
-
   if (vt === 7) {
     canvas.hidden = false;
     consoleElement.hidden = true;
     logsButton.textContent = "Logs";
-    setStatus("Graphical display connected. Waiting for XFCE...");
+    setStatus("XFCE graphical display active.");
     canvas.focus();
+    completeConsoleSwitch(vt);
     return;
   }
 
   consoleElement.hidden = false;
   logsButton.textContent = "Hide logs";
   setStatus(`Linux console VT ${vt}`);
+  completeConsoleSwitch(vt);
 }
 
 function createNetworkConfiguration() {
@@ -222,7 +222,7 @@ async function startVm(withNetwork) {
 
     setStatus("Starting Linux display...");
 
-    cx.run("/usr/local/bin/webvm-xfce-start", [], {
+    cx.run("/sbin/init", [], {
       uid: 0,
       gid: 0,
       cwd: "/",
@@ -269,28 +269,6 @@ async function resetVm() {
     setStatus(`Reset failed: ${error.message}`);
   }
 }
-
-
-const xfceReadyObserver = new MutationObserver(() => {
-  if (!consoleElement.textContent.includes("PURE_XFCE_COMPONENTS_READY")) {
-    return;
-  }
-
-  setStatus("XFCE desktop ready.");
-
-  canvas.hidden = false;
-  consoleElement.hidden = true;
-  logsButton.textContent = "Logs";
-  canvas.focus();
-
-  xfceReadyObserver.disconnect();
-});
-
-xfceReadyObserver.observe(consoleElement, {
-  childList: true,
-  subtree: true,
-  characterData: true
-});
 
 startButton.addEventListener("click", () => startVm(false));
 networkButton.addEventListener("click", () => startVm(true));

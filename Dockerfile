@@ -53,8 +53,12 @@ RUN printf '%s\n' \
 
 RUN apk update && apk add --no-cache \
     alpine-base \
+    udev-init-scripts \
+    udev-init-scripts-openrc \
+    eudev \
     xorg-server \
     xf86-input-libinput \
+    lightdm \
     xinit \
     xrandr \
     dbus \
@@ -84,6 +88,19 @@ RUN adduser -D -s /bin/bash user && \
     addgroup user input && \
     addgroup user audio
 
+RUN rc-update add bootmisc boot && \
+    rc-update add udev sysinit && \
+    rc-update add udev-trigger sysinit && \
+    rc-update add udev-settle sysinit && \
+    rc-update add udev-postmount default && \
+    rc-update add dbus default && \
+    rc-update add lightdm default && \
+    sed -i \
+      -e 's/^#autologin-user=$/autologin-user=user/' \
+      -e 's/^#autologin-user-timeout=0$/autologin-user-timeout=0/' \
+      -e 's/^#autologin-session=$/autologin-session=xfce/' \
+      /etc/lightdm/lightdm.conf
+
 COPY --from=xfwm_builder /out/usr/ /usr/
 COPY rootfs/ /
 
@@ -98,4 +115,4 @@ ENV USER=root
 ENV SHELL=/bin/sh
 ENV PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
-CMD ["/bin/sh"]
+CMD ["/sbin/init"]
