@@ -91,28 +91,20 @@ function scheduleResize() {
 }
 
 function handleConsoleSwitch(vt) {
+  completeConsoleSwitch(vt);
+
   if (vt === 7) {
     canvas.hidden = false;
     consoleElement.hidden = true;
     logsButton.textContent = "Logs";
-    setStatus("Graphical display selected. Starting XFCE...");
-
-    requestAnimationFrame(() => {
-      resizeDisplay();
-      canvas.focus();
-
-      requestAnimationFrame(() => {
-        completeConsoleSwitch(vt);
-      });
-    });
-
+    setStatus("Graphical display connected. Waiting for XFCE...");
+    canvas.focus();
     return;
   }
 
   consoleElement.hidden = false;
   logsButton.textContent = "Hide logs";
   setStatus(`Linux console VT ${vt}`);
-  completeConsoleSwitch(vt);
 }
 
 function createNetworkConfiguration() {
@@ -289,15 +281,7 @@ const xfceReadyObserver = new MutationObserver(() => {
   canvas.hidden = false;
   consoleElement.hidden = true;
   logsButton.textContent = "Logs";
-
-  requestAnimationFrame(() => {
-    resizeDisplay();
-    canvas.focus();
-
-    setTimeout(() => {
-      resizeDisplay();
-    }, 300);
-  });
+  canvas.focus();
 
   xfceReadyObserver.disconnect();
 });
