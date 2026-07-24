@@ -1,0 +1,126 @@
+name: Build and deploy XFCE WebVM
+
+on:
+  workflow_dispatch:
+    inputs:
+      IMAGE_SIZE:
+        type: string
+        description: ext2 image size
+        required: true
+        default: 950M
+  push:
+    branches:
+      - main
+    paths:
+      - dockerfiles/xfce/**
+      - config_github_alpine.js
+      - vite.config.js
+      - src/routes/alpine/**
+      - .github/workflows/deploy-xfce.yml
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      TAG: webvm-xfce-image
+      IMAGE_SIZE: ${{ inputs.IMAGE_SIZE || '950M' }}
+      DEPLOY_DIR: /tmp/webvm-deploy
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build 32-bit Alpine XFCE container
+        run: |
+          docker build \
+            --platform=linux/386 \
+            --tag "$TAG" \
+            --file dockerfiles/xfce/Dockerfile \
+            dockerfiles/xfce
+
+      - name: Create container
+        run: |
+          docker create --name webvm-xfce-container "$TAG"
+
+      - name: Generate image name
+        run: |
+          echo "IMAGE_NAME=xfce_webvm_${GITHUB_RUN_ID}.ext2" >> "$GITHUB_ENV"
+
+      - name: Create ext2 disk
+        run: |
+          sudo mkdir -p "$DEPLOY_DIR"
+          sudo fallocate -l "$IMAGE_SIZE" "$IMAGE_NAME"
+          sudo mkfs.ext2 -F -r 0 "$IMAGE_NAME"
+          sudo mount -o loop -t ext2 "$IMAGE_NAME" /mnt
+          sudo docker cp -a webvm-xfce-container:/ /mnt/
+          sudo umount /mnt
+
+      - name: Split disk for GitHub Pages
+        run: |
+          sudo split \
+            "$IMAGE_NAME" \
+            "$DEPLOY_DIR/$IMAGE_NAME.c" \
+            -a 6 \
+            -b 128k \
+            -x \
+            --additional-suffix=.txt
+
+          sudo sh -c "stat -c%s '$IMAGE_NAME' > '$DEPLOY_DIR/$IMAGE_NAME.meta'"
+
+      - name: Point graphical WebVM at generated disk
+        run: |
+          sed -i \
+            "s#IMAGE_URL#\"$IMAGE_NAME\"#g" \
+            config_github_alpine.js
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build WebVM frontend
+        run: WEBVM_MODE=github npm run build
+
+      - name: Make XFCE the website homepage
+        run: |
+          test -f build/alpine.html
+          cp build/alpine.html build/index.html
+          sudo cp -a build/. "$DEPLOY_DIR/"
+
+      - name: Generate WebVM directory indexes
+        run: |
+          sudo find "$DEPLOY_DIR" -type d | while read -r dir
+          do
+            index_file="$dir/index.list"
+            sudo rm -f "$index_file"
+            sudo ls "$dir" | sudo tee "$index_file" >/dev/null
+            sudo chmod 644 "$index_file"
+          done
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.DEPLOY_DIR }}
+
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
