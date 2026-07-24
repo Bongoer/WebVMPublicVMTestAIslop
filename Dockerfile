@@ -1,4 +1,4 @@
-FROM --platform=linux/386 docker.io/i386/alpine:3.20
+FROM docker.io/i386/alpine:3.20
 
 RUN printf '%s\n' \
     'https://dl-cdn.alpinelinux.org/alpine/v3.20/main' \
@@ -34,13 +34,6 @@ RUN apk update && apk add --no-cache \
     util-linux \
     coreutils
 
-RUN rc-update add bootmisc boot && \
-    rc-update add udev sysinit && \
-    rc-update add udev-trigger sysinit && \
-    rc-update add udev-settle sysinit && \
-    rc-update add udev-postmount default && \
-    rc-update add dbus default && \
-    rc-update add lightdm default
 
 RUN adduser -D -s /bin/bash user && \
     echo 'user:webvm' | chpasswd && \
