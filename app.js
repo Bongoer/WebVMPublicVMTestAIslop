@@ -1,6 +1,6 @@
 const CHEERPX_URL = "https://cxrtnc.leaningtech.com/1.2.8/cx.esm.js";
-const DISK_URL = new URL("./xfce.ext2?v=13", window.location.href).href;
-const OVERLAY_NAME = "webvm-xfce-overlay-v13";
+const DISK_URL = new URL("./xfce.ext2?v=14", window.location.href).href;
+const OVERLAY_NAME = "webvm-xfce-overlay-v14";
 const COI_RELOAD_KEY = "webvm-xfce-coi-reloaded-v12";
 
 const statusElement = document.getElementById("status");
@@ -39,7 +39,7 @@ async function ensureCrossOriginIsolation() {
     throw new Error("This browser does not support the service worker required by CheerpX.");
   }
 
-  await navigator.serviceWorker.register("./coi-sw.js?v=13", { scope: "./" });
+  await navigator.serviceWorker.register("./coi-sw.js?v=14", { scope: "./" });
   await navigator.serviceWorker.ready;
 
   if (sessionStorage.getItem(COI_RELOAD_KEY) === "1") {
