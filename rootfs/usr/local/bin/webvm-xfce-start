@@ -2,6 +2,8 @@
 set -x
 
 export DISPLAY=:0
+export LIBGL_ALWAYS_SOFTWARE=1
+export GALLIUM_DRIVER=softpipe
 export HOME=/home/user
 export USER=user
 export LOGNAME=user

@@ -16,6 +16,10 @@ RUN apk update && apk add --no-cache \
     xorg-server \
     xf86-input-libinput \
     xrandr \
+    mesa-gl \
+    mesa-egl \
+    mesa-gbm \
+    mesa-dri-gallium \
     su-exec \
     xinit \
     xfce4 \
