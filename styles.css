@@ -179,3 +179,12 @@ code {
     flex: 1 1 auto;
   }
 }
+
+#console {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.35;
+  font-size: 12px;
+  user-select: text;
+}

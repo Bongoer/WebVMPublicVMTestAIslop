@@ -15,7 +15,7 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-echo "[1/6] Preparing XFCE display"
+echo "[1/4] Preparing XFCE display"
 
 mkdir -p /tmp/.X11-unix
 mkdir -p /tmp/.ICE-unix
@@ -31,8 +31,9 @@ chown -R user:user /home/user
 
 rm -f /tmp/.X11-unix/X0
 rm -f /tmp/.X0-lock
+rm -rf /home/user/.cache/sessions
 
-echo "[2/6] Starting Xorg without GLX"
+echo "[2/4] Starting CPU-rendered Xorg"
 
 /usr/bin/Xorg \
   :0 \
@@ -41,11 +42,14 @@ echo "[2/6] Starting Xorg without GLX"
   -noreset \
   -nolisten tcp \
   -ac \
-  -extension GLX &
+  -extension GLX \
+  -extension DRI2 \
+  -extension DRI3 \
+  -extension Composite &
 
 xorg_pid=$!
 
-echo "[3/6] Waiting for XFCE display"
+echo "[3/4] Waiting for graphical display"
 
 attempt=0
 
@@ -69,7 +73,7 @@ do
   sleep 1
 done
 
-echo "[4/6] Starting XFCE window manager"
+echo "[4/4] Starting pure XFCE"
 
 exec su-exec user env \
   HOME=/home/user \
@@ -81,56 +85,24 @@ exec su-exec user env \
   XDG_CONFIG_HOME=/home/user/.config \
   XDG_CURRENT_DESKTOP=XFCE \
   DESKTOP_SESSION=xfce \
+  GDK_BACKEND=x11 \
+  XLIB_SKIP_ARGB_VISUALS=1 \
   dbus-run-session sh -c '
-    /usr/bin/xfwm4 \
-      --replace \
-      --compositor=off \
-      >/tmp/xfwm4.log 2>&1 &
+    /usr/bin/xfce4-session &
+    session_pid=$!
 
-    wm_pid=$!
+    sleep 10
 
-    sleep 4
-
-    if ! kill -0 "$wm_pid" 2>/dev/null
+    if kill -0 "$session_pid" 2>/dev/null &&
+       pgrep -x xfwm4 >/dev/null &&
+       pgrep -x xfdesktop >/dev/null &&
+       pgrep -x xfce4-panel >/dev/null
     then
-      echo "ERROR: xfwm4 stopped."
-      cat /tmp/xfwm4.log
-      exit 1
+      echo "PURE_XFCE_DESKTOP_READY"
+    else
+      echo "ERROR: One or more XFCE components failed."
+      ps
     fi
 
-    echo "[5/6] Starting XFCE desktop"
-
-    /usr/bin/xfsettingsd \
-      --replace \
-      >/tmp/xfsettingsd.log 2>&1 &
-
-    /usr/bin/thunar \
-      --daemon \
-      >/tmp/thunar.log 2>&1 &
-
-    /usr/bin/xfdesktop \
-      >/tmp/xfdesktop.log 2>&1 &
-
-    sleep 3
-
-    echo "[6/6] Starting XFCE panel"
-
-    /usr/bin/xfce4-panel \
-      --disable-wm-check \
-      >/tmp/xfce4-panel.log 2>&1 &
-
-    panel_pid=$!
-
-    sleep 5
-
-    if ! kill -0 "$panel_pid" 2>/dev/null
-    then
-      echo "ERROR: XFCE panel stopped."
-      cat /tmp/xfce4-panel.log
-      exit 1
-    fi
-
-    echo "Pure XFCE desktop is running."
-
-    wait "$wm_pid"
+    wait "$session_pid"
   '
