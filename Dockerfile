@@ -35,11 +35,6 @@ RUN apk update && apk add --no-cache \
     coreutils
 
 
-RUN test -f /usr/lib/xorg/modules/dri/swrast_dri.so && \
-    ln -sf \
-      /usr/lib/xorg/modules/dri/swrast_dri.so \
-      "/usr/lib/xorg/modules/dri/CheerpX KMS_dri.so"
-
 RUN adduser -D -s /bin/bash user && \
     echo 'user:webvm' | chpasswd && \
     echo 'root:root' | chpasswd && \

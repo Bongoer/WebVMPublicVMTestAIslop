@@ -7,11 +7,6 @@ export LOGNAME=root
 export SHELL=/bin/sh
 export DISPLAY=:0
 
-export LIBGL_ALWAYS_SOFTWARE=true
-export GALLIUM_DRIVER=llvmpipe
-export MESA_LOADER_DRIVER_OVERRIDE=swrast
-export LIBGL_DRIVERS_PATH=/usr/lib/xorg/modules/dri:/usr/lib/dri
-
 xorg_pid=""
 
 cleanup() {
@@ -37,7 +32,7 @@ chown -R user:user /home/user
 rm -f /tmp/.X11-unix/X0
 rm -f /tmp/.X0-lock
 
-echo "[2/6] Starting Xorg"
+echo "[2/6] Starting Xorg without GLX"
 
 /usr/bin/Xorg \
   :0 \
@@ -45,7 +40,8 @@ echo "[2/6] Starting Xorg"
   -keeptty \
   -noreset \
   -nolisten tcp \
-  -ac &
+  -ac \
+  -extension GLX &
 
 xorg_pid=$!
 
@@ -85,16 +81,7 @@ exec su-exec user env \
   XDG_CONFIG_HOME=/home/user/.config \
   XDG_CURRENT_DESKTOP=XFCE \
   DESKTOP_SESSION=xfce \
-  LIBGL_ALWAYS_SOFTWARE=true \
-  GALLIUM_DRIVER=llvmpipe \
-  MESA_LOADER_DRIVER_OVERRIDE=swrast \
-  LIBGL_DRIVERS_PATH=/usr/lib/xorg/modules/dri:/usr/lib/dri \
   dbus-run-session sh -c '
-    rm -f /tmp/xfwm4.log
-    rm -f /tmp/xfsettingsd.log
-    rm -f /tmp/xfdesktop.log
-    rm -f /tmp/xfce4-panel.log
-
     /usr/bin/xfwm4 \
       --replace \
       --compositor=off \
@@ -106,12 +93,12 @@ exec su-exec user env \
 
     if ! kill -0 "$wm_pid" 2>/dev/null
     then
-      echo "ERROR: XFCE window manager failed."
+      echo "ERROR: xfwm4 stopped."
       cat /tmp/xfwm4.log
       exit 1
     fi
 
-    echo "[5/6] Starting XFCE settings and desktop"
+    echo "[5/6] Starting XFCE desktop"
 
     /usr/bin/xfsettingsd \
       --replace \
@@ -138,12 +125,12 @@ exec su-exec user env \
 
     if ! kill -0 "$panel_pid" 2>/dev/null
     then
-      echo "ERROR: XFCE panel failed."
+      echo "ERROR: XFCE panel stopped."
       cat /tmp/xfce4-panel.log
       exit 1
     fi
 
-    echo "Full XFCE desktop is running."
+    echo "Pure XFCE desktop is running."
 
     wait "$wm_pid"
   '
