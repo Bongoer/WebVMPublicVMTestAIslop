@@ -1,7 +1,7 @@
 const CHEERPX_URL = "https://cxrtnc.leaningtech.com/1.2.8/cx.esm.js";
-const SYSTEM_IMAGE_URL = new URL("./xfce.ext2?v=19", location.href).href;
-const OVERLAY_NAME = "webvm-linux-overlay-v19";
-const COI_RELOAD_KEY = "webvm-coi-v18";
+const SYSTEM_IMAGE_URL = new URL("./xfce.ext2?v=21", location.href).href;
+const OVERLAY_NAME = "webvm-linux-overlay-v21";
+const COI_RELOAD_KEY = "webvm-coi-v21";
 
 const statusElement = document.getElementById("status");
 const canvas = document.getElementById("display");
@@ -40,7 +40,7 @@ async function ensureCrossOriginIsolation() {
     throw new Error("Service workers are unavailable in this browser.");
   }
 
-  await navigator.serviceWorker.register("./coi-sw.js?v=19", {
+  await navigator.serviceWorker.register("./coi-sw.js?v=21", {
     scope: "./"
   });
 

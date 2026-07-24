@@ -6,20 +6,21 @@ export USER=root
 export LOGNAME=root
 export SHELL=/bin/sh
 export DISPLAY=:0
-export LIBGL_ALWAYS_SOFTWARE=1
+
+export LIBGL_ALWAYS_SOFTWARE=true
 export GALLIUM_DRIVER=llvmpipe
+export MESA_LOADER_DRIVER_OVERRIDE=swrast
+export LIBGL_DRIVERS_PATH=/usr/lib/xorg/modules/dri:/usr/lib/dri
 
 xorg_pid=""
-desktop_pid=""
 
 cleanup() {
-  [ -n "$desktop_pid" ] && kill "$desktop_pid" 2>/dev/null || true
   [ -n "$xorg_pid" ] && kill "$xorg_pid" 2>/dev/null || true
 }
 
 trap cleanup EXIT INT TERM
 
-echo "[1/5] Preparing Linux display"
+echo "[1/6] Preparing XFCE display"
 
 mkdir -p /tmp/.X11-unix
 mkdir -p /tmp/.ICE-unix
@@ -36,7 +37,7 @@ chown -R user:user /home/user
 rm -f /tmp/.X11-unix/X0
 rm -f /tmp/.X0-lock
 
-echo "[2/5] Starting graphical server"
+echo "[2/6] Starting Xorg"
 
 /usr/bin/Xorg \
   :0 \
@@ -48,7 +49,7 @@ echo "[2/5] Starting graphical server"
 
 xorg_pid=$!
 
-echo "[3/5] Waiting for graphical socket"
+echo "[3/6] Waiting for XFCE display"
 
 attempt=0
 
@@ -56,7 +57,7 @@ while [ ! -S /tmp/.X11-unix/X0 ]
 do
   if ! kill -0 "$xorg_pid" 2>/dev/null
   then
-    echo "ERROR: Xorg stopped before creating the display."
+    echo "ERROR: Xorg stopped."
     wait "$xorg_pid"
     exit 1
   fi
@@ -65,16 +66,16 @@ do
 
   if [ "$attempt" -ge 60 ]
   then
-    echo "ERROR: Xorg did not create its display socket."
+    echo "ERROR: Xorg did not create display :0."
     exit 1
   fi
 
   sleep 1
 done
 
-echo "[4/5] Starting XFCE session"
+echo "[4/6] Starting XFCE window manager"
 
-su-exec user env \
+exec su-exec user env \
   HOME=/home/user \
   USER=user \
   LOGNAME=user \
@@ -84,23 +85,65 @@ su-exec user env \
   XDG_CONFIG_HOME=/home/user/.config \
   XDG_CURRENT_DESKTOP=XFCE \
   DESKTOP_SESSION=xfce \
-  LIBGL_ALWAYS_SOFTWARE=1 \
+  LIBGL_ALWAYS_SOFTWARE=true \
   GALLIUM_DRIVER=llvmpipe \
+  MESA_LOADER_DRIVER_OVERRIDE=swrast \
+  LIBGL_DRIVERS_PATH=/usr/lib/xorg/modules/dri:/usr/lib/dri \
   dbus-run-session sh -c '
-    /usr/bin/xfce4-session &
-    session_pid=$!
-
-    sleep 6
-
-    echo "[5/5] Starting XFCE window manager"
+    rm -f /tmp/xfwm4.log
+    rm -f /tmp/xfsettingsd.log
+    rm -f /tmp/xfdesktop.log
+    rm -f /tmp/xfce4-panel.log
 
     /usr/bin/xfwm4 \
       --replace \
-      --compositor=off &
+      --compositor=off \
+      >/tmp/xfwm4.log 2>&1 &
 
-    wait "$session_pid"
-  ' &
+    wm_pid=$!
 
-desktop_pid=$!
+    sleep 4
 
-wait "$desktop_pid"
+    if ! kill -0 "$wm_pid" 2>/dev/null
+    then
+      echo "ERROR: XFCE window manager failed."
+      cat /tmp/xfwm4.log
+      exit 1
+    fi
+
+    echo "[5/6] Starting XFCE settings and desktop"
+
+    /usr/bin/xfsettingsd \
+      --replace \
+      >/tmp/xfsettingsd.log 2>&1 &
+
+    /usr/bin/thunar \
+      --daemon \
+      >/tmp/thunar.log 2>&1 &
+
+    /usr/bin/xfdesktop \
+      >/tmp/xfdesktop.log 2>&1 &
+
+    sleep 3
+
+    echo "[6/6] Starting XFCE panel"
+
+    /usr/bin/xfce4-panel \
+      --disable-wm-check \
+      >/tmp/xfce4-panel.log 2>&1 &
+
+    panel_pid=$!
+
+    sleep 5
+
+    if ! kill -0 "$panel_pid" 2>/dev/null
+    then
+      echo "ERROR: XFCE panel failed."
+      cat /tmp/xfce4-panel.log
+      exit 1
+    fi
+
+    echo "Full XFCE desktop is running."
+
+    wait "$wm_pid"
+  '

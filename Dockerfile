@@ -34,6 +34,16 @@ RUN apk update && apk add --no-cache \
     util-linux \
     coreutils
 
+
+RUN test -f /usr/lib/dri/swrast_dri.so && \
+    mkdir -p /usr/lib/xorg/modules/dri && \
+    for f in /usr/lib/dri/*_dri.so; do \
+      ln -sf "$f" "/usr/lib/xorg/modules/dri/$(basename "$f")"; \
+    done && \
+    ln -sf \
+      /usr/lib/dri/swrast_dri.so \
+      "/usr/lib/xorg/modules/dri/CheerpX KMS_dri.so"
+
 RUN adduser -D -s /bin/bash user && \
     echo 'user:webvm' | chpasswd && \
     echo 'root:root' | chpasswd && \
