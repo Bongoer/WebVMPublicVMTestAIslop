@@ -1,7 +1,7 @@
 const CHEERPX_URL = "https://cxrtnc.leaningtech.com/1.2.8/cx.esm.js";
-const DISK_URL = new URL("./xfce.ext2?v=15", window.location.href).href;
-const OVERLAY_NAME = "webvm-xfce-overlay-v15";
-const COI_RELOAD_KEY = "webvm-xfce-coi-reloaded-v12";
+const DISK_URL = new URL("./xfce.ext2?v=16", window.location.href).href;
+const OVERLAY_NAME = "webvm-xfce-overlay-v16";
+const COI_RELOAD_KEY = "webvm-xfce-coi-reloaded-v16";
 
 const statusElement = document.getElementById("status");
 const canvas = document.getElementById("display");
@@ -18,6 +18,7 @@ let CheerpX = null;
 let cx = null;
 let running = false;
 let resizeTimer = null;
+let currentVt = 1;
 
 function setStatus(message) {
   statusElement.textContent = message;
@@ -36,15 +37,18 @@ async function ensureCrossOriginIsolation() {
   }
 
   if (!("serviceWorker" in navigator)) {
-    throw new Error("This browser does not support the service worker required by CheerpX.");
+    throw new Error("This browser does not support the required service worker.");
   }
 
-  await navigator.serviceWorker.register("./coi-sw.js?v=15", { scope: "./" });
+  await navigator.serviceWorker.register("./coi-sw.js?v=16", {
+    scope: "./"
+  });
+
   await navigator.serviceWorker.ready;
 
   if (sessionStorage.getItem(COI_RELOAD_KEY) === "1") {
     throw new Error(
-      "Cross-origin isolation did not start. Open the published GitHub Pages address in Chrome, not a file preview."
+      "Cross-origin isolation failed. Open the published GitHub Pages address in Chrome."
     );
   }
 
@@ -58,6 +62,7 @@ async function loadCheerpX() {
     setStatus("Loading CheerpX...");
     CheerpX = await import(CHEERPX_URL);
   }
+
   return CheerpX;
 }
 
@@ -66,18 +71,27 @@ function resizeDisplay() {
     return;
   }
 
-  const bounds = screen.getBoundingClientRect();
-  const width = Math.max(640, Math.floor(bounds.width));
-  const height = Math.max(480, Math.floor(bounds.height));
+  const displayWidth = Math.max(1, canvas.offsetWidth);
+  const displayHeight = Math.max(1, canvas.offsetHeight);
 
-  canvas.width = width;
-  canvas.height = height;
-  cx.setKmsCanvas(canvas, width, height);
+  const minimumWidth = 1024;
+  const minimumHeight = 768;
+
+  const multiplier = Math.max(
+    1,
+    minimumWidth / displayWidth,
+    minimumHeight / displayHeight
+  );
+
+  const internalWidth = Math.floor(displayWidth * multiplier);
+  const internalHeight = Math.floor(displayHeight * multiplier);
+
+  cx.setKmsCanvas(canvas, internalWidth, internalHeight);
 }
 
 function scheduleResize() {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(resizeDisplay, 120);
+  resizeTimer = setTimeout(resizeDisplay, 150);
 }
 
 function createNetworkConfiguration() {
@@ -89,19 +103,18 @@ function createNetworkConfiguration() {
     loginUrlCb(url) {
       loginLink.href = url;
       loginLink.hidden = false;
-      setStatus("Tap \"Open Tailscale login\" to connect the VM.");
+      setStatus('Tap "Open Tailscale login" to connect.');
     },
 
     stateUpdateCb(state) {
       if (state === 6) {
         setStatus("Network connected.");
-      } else {
-        setStatus(`Network state: ${state}`);
       }
     },
 
     netmapUpdateCb(map) {
       const address = map?.self?.addresses?.[0];
+
       if (address) {
         setStatus(`Network connected: ${address}`);
       }
@@ -119,6 +132,21 @@ function createNetworkConfiguration() {
   return configuration;
 }
 
+function activateConsole(vt) {
+  currentVt = vt;
+
+  if (vt === 7) {
+    consoleElement.hidden = true;
+    canvas.hidden = false;
+    logsButton.textContent = "Logs";
+    setStatus("XFCE graphical display active.");
+    canvas.focus();
+    return;
+  }
+
+  setStatus(`Booting Linux on VT ${vt}...`);
+}
+
 async function startVm(withNetwork) {
   if (running) {
     return;
@@ -127,19 +155,41 @@ async function startVm(withNetwork) {
   running = true;
   setStartButtons(false);
   loginLink.hidden = true;
-  setStatus("Opening the Linux disk...");
+  setStatus("Opening the XFCE disk...");
 
   try {
     const api = await loadCheerpX();
+
     const baseDevice = await api.HttpBytesDevice.create(DISK_URL);
     const localDevice = await api.IDBDevice.create(OVERLAY_NAME);
-    const overlayDevice = await api.OverlayDevice.create(baseDevice, localDevice);
+    const overlayDevice = await api.OverlayDevice.create(
+      baseDevice,
+      localDevice
+    );
 
     const options = {
       mounts: [
-        { type: "ext2", path: "/", dev: overlayDevice },
-        { type: "devs", path: "/dev" },
-        { type: "proc", path: "/proc" }
+        {
+          type: "ext2",
+          path: "/",
+          dev: overlayDevice
+        },
+        {
+          type: "devs",
+          path: "/dev"
+        },
+        {
+          type: "devpts",
+          path: "/dev/pts"
+        },
+        {
+          type: "proc",
+          path: "/proc"
+        },
+        {
+          type: "sys",
+          path: "/sys"
+        }
       ]
     };
 
@@ -147,31 +197,24 @@ async function startVm(withNetwork) {
       options.networkInterface = createNetworkConfiguration();
     }
 
-    setStatus("Starting the virtual machine...");
+    setStatus("Creating the Linux VM...");
+
     cx = await api.Linux.create(options);
 
-    let finishVtSwitch = () => {};
-
-    finishVtSwitch = cx.setActivateConsole((index) => {
-      finishVtSwitch(index);
-
-      if (index >= 6) {
-        canvas.hidden = false;
-        consoleElement.hidden = true;
-        logsButton.textContent = "Logs";
-        setStatus(`Graphical VT ${index} selected. Waiting for XFCE...`);
-        canvas.focus();
-      }
-    });
     cx.setConsole(consoleElement);
+    cx.setActivateConsole(activateConsole);
 
     resizeDisplay();
+
     window.addEventListener("resize", scheduleResize);
     canvas.addEventListener("pointerdown", () => canvas.focus());
 
     splash.hidden = true;
-    canvas.focus();
-    setStatus(withNetwork ? "Booting Alpine, XFCE and network..." : "Booting Alpine and XFCE...");
+    consoleElement.hidden = false;
+    canvas.hidden = false;
+    logsButton.textContent = "Hide logs";
+
+    setStatus("Booting Alpine, udev, Xorg and XFCE...");
 
     cx.run("/sbin/init", [], {
       uid: 0,
@@ -180,9 +223,9 @@ async function startVm(withNetwork) {
       env: [
         "HOME=/root",
         "USER=root",
+        "LOGNAME=root",
         "SHELL=/bin/sh",
-        "PATH=/sbin:/bin:/usr/sbin:/usr/bin",
-        "DISPLAY=:0"
+        "PATH=/sbin:/bin:/usr/sbin:/usr/bin"
       ]
     }).then((exitCode) => {
       setStatus(`Linux stopped with exit code ${exitCode}.`);
@@ -190,13 +233,15 @@ async function startVm(withNetwork) {
     }).catch((error) => {
       console.error(error);
       setStatus(`Linux stopped: ${error.message}`);
-      running = false;
       consoleElement.hidden = false;
+      running = false;
     });
   } catch (error) {
     console.error(error);
     setStatus(`Start failed: ${error.message}`);
-    consoleElement.textContent += `\nStart failed:\n${error.stack || error.message}\n`;
+    consoleElement.textContent +=
+      `\nStart failed:\n${error.stack || error.message}\n`;
+
     consoleElement.hidden = false;
     running = false;
     setStartButtons(true);
@@ -205,7 +250,7 @@ async function startVm(withNetwork) {
 
 async function resetVm() {
   const confirmed = window.confirm(
-    "Delete this browser's saved VM changes and return to the clean XFCE image?"
+    "Delete this browser's saved VM and load the new clean XFCE image?"
   );
 
   if (!confirmed) {
@@ -215,8 +260,10 @@ async function resetVm() {
   try {
     const api = await loadCheerpX();
     setStatus("Deleting saved VM changes...");
+
     const localDevice = await api.IDBDevice.create(OVERLAY_NAME);
     await localDevice.reset();
+
     window.location.reload();
   } catch (error) {
     setStatus(`Reset failed: ${error.message}`);
@@ -226,14 +273,15 @@ async function resetVm() {
 startButton.addEventListener("click", () => startVm(false));
 networkButton.addEventListener("click", () => startVm(true));
 resetButton.addEventListener("click", resetVm);
+
 logsButton.addEventListener("click", () => {
   consoleElement.hidden = !consoleElement.hidden;
   logsButton.textContent = consoleElement.hidden ? "Logs" : "Hide logs";
 
-  if (!consoleElement.hidden) {
-    consoleElement.focus();
-  } else {
+  if (consoleElement.hidden) {
     canvas.focus();
+  } else {
+    consoleElement.focus();
   }
 });
 
