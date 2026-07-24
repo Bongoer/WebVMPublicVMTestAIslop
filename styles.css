@@ -188,3 +188,14 @@ code {
   font-size: 12px;
   user-select: text;
 }
+
+
+#console {
+  white-space: pre;
+  overflow: auto;
+  overflow-wrap: normal;
+  word-break: normal;
+  user-select: text;
+  font-size: 11px;
+  line-height: 1.35;
+}
