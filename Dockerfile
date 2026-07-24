@@ -16,9 +16,8 @@ RUN apk update && apk add --no-cache \
     xorg-server \
     xf86-input-libinput \
     xrandr \
+    su-exec \
     xinit \
-    lightdm \
-    lightdm-gtk-greeter \
     xfce4 \
     xfce4-terminal \
     mousepad \

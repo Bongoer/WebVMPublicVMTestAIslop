@@ -1,30 +1,58 @@
 #!/bin/sh
 set -x
 
+export DISPLAY=:0
 export HOME=/home/user
 export USER=user
 export LOGNAME=user
 export SHELL=/bin/sh
-export DISPLAY=:0
 export XDG_RUNTIME_DIR=/tmp/runtime-user
 
+mkdir -p /run/dbus
 mkdir -p /tmp/.X11-unix
 mkdir -p /tmp/runtime-user
-mkdir -p /run/dbus
 
 chmod 1777 /tmp
+chmod 1777 /tmp/.X11-unix
 chmod 700 /tmp/runtime-user
+
 chown user:user /tmp/runtime-user
-chown user:user /home/user
+chown -R user:user /home/user
 
 dbus-uuidgen --ensure=/etc/machine-id
+dbus-daemon --system --fork || true
 
-exec su -s /bin/sh user -c '\
-HOME=/home/user \
-USER=user \
-LOGNAME=user \
-DISPLAY=:0 \
-XDG_RUNTIME_DIR=/tmp/runtime-user \
-dbus-run-session \
-xinit /usr/bin/startxfce4 -- \
-/usr/bin/Xorg :0 vt7 -keeptty -nolisten tcp'
+/usr/bin/Xorg :0 vt7 -keeptty -nolisten tcp &
+xorg_pid=$!
+
+cleanup() {
+  kill "$xorg_pid" 2>/dev/null || true
+}
+
+trap cleanup EXIT INT TERM
+
+count=0
+
+while [ ! -S /tmp/.X11-unix/X0 ]
+do
+  if ! kill -0 "$xorg_pid" 2>/dev/null
+  then
+    echo "Xorg stopped before creating the display."
+    wait "$xorg_pid"
+    exit 1
+  fi
+
+  count=$((count + 1))
+
+  if [ "$count" -ge 30 ]
+  then
+    echo "Xorg did not create display :0."
+    exit 1
+  fi
+
+  sleep 1
+done
+
+echo "Xorg display is ready. Starting XFCE."
+
+su-exec user dbus-run-session /usr/bin/startxfce4
