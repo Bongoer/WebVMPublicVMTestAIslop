@@ -12,6 +12,8 @@ RUN apk update && apk add --no-cache \
     xf86-input-libinput \
     xinit \
     xrandr \
+    mesa-gl \
+    mesa-dri-gallium \
     dbus \
     dbus-x11 \
     su-exec \

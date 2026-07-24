@@ -1,6 +1,6 @@
 const CHEERPX_URL = "https://cxrtnc.leaningtech.com/1.2.8/cx.esm.js";
-const SYSTEM_IMAGE_URL = new URL("./xfce.ext2?v=18", location.href).href;
-const OVERLAY_NAME = "webvm-linux-overlay-v18";
+const SYSTEM_IMAGE_URL = new URL("./xfce.ext2?v=19", location.href).href;
+const OVERLAY_NAME = "webvm-linux-overlay-v19";
 const COI_RELOAD_KEY = "webvm-coi-v18";
 
 const statusElement = document.getElementById("status");
@@ -40,7 +40,7 @@ async function ensureCrossOriginIsolation() {
     throw new Error("Service workers are unavailable in this browser.");
   }
 
-  await navigator.serviceWorker.register("./coi-sw.js?v=18", {
+  await navigator.serviceWorker.register("./coi-sw.js?v=19", {
     scope: "./"
   });
 
@@ -97,7 +97,7 @@ function handleConsoleSwitch(vt) {
     canvas.hidden = false;
     consoleElement.hidden = true;
     logsButton.textContent = "Logs";
-    setStatus("Graphical output selected. Waiting for the desktop...");
+    setStatus("Graphical display connected. Starting XFCE...");
     canvas.focus();
     return;
   }

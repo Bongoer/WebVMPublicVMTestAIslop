@@ -6,24 +6,28 @@ export USER=root
 export LOGNAME=root
 export SHELL=/bin/sh
 export DISPLAY=:0
+export LIBGL_ALWAYS_SOFTWARE=1
+export GALLIUM_DRIVER=llvmpipe
 
 xorg_pid=""
-xfce_pid=""
+desktop_pid=""
 
 cleanup() {
-  [ -n "$xfce_pid" ] && kill "$xfce_pid" 2>/dev/null || true
+  [ -n "$desktop_pid" ] && kill "$desktop_pid" 2>/dev/null || true
   [ -n "$xorg_pid" ] && kill "$xorg_pid" 2>/dev/null || true
 }
 
 trap cleanup EXIT INT TERM
 
-echo "[1/4] Preparing Linux display"
+echo "[1/5] Preparing Linux display"
 
 mkdir -p /tmp/.X11-unix
+mkdir -p /tmp/.ICE-unix
 mkdir -p /tmp/runtime-user
 
 chmod 1777 /tmp
 chmod 1777 /tmp/.X11-unix
+chmod 1777 /tmp/.ICE-unix
 chmod 700 /tmp/runtime-user
 
 chown user:user /tmp/runtime-user
@@ -32,7 +36,7 @@ chown -R user:user /home/user
 rm -f /tmp/.X11-unix/X0
 rm -f /tmp/.X0-lock
 
-echo "[2/4] Starting graphical server"
+echo "[2/5] Starting graphical server"
 
 /usr/bin/Xorg \
   :0 \
@@ -40,12 +44,11 @@ echo "[2/4] Starting graphical server"
   -keeptty \
   -noreset \
   -nolisten tcp \
-  -ac \
-  -retro &
+  -ac &
 
 xorg_pid=$!
 
-echo "[3/4] Waiting for graphical socket"
+echo "[3/5] Waiting for graphical socket"
 
 attempt=0
 
@@ -69,7 +72,7 @@ do
   sleep 1
 done
 
-echo "[4/4] Starting XFCE desktop"
+echo "[4/5] Starting XFCE session"
 
 su-exec user env \
   HOME=/home/user \
@@ -81,19 +84,23 @@ su-exec user env \
   XDG_CONFIG_HOME=/home/user/.config \
   XDG_CURRENT_DESKTOP=XFCE \
   DESKTOP_SESSION=xfce \
-  dbus-run-session /usr/bin/xfce4-session &
+  LIBGL_ALWAYS_SOFTWARE=1 \
+  GALLIUM_DRIVER=llvmpipe \
+  dbus-run-session sh -c '
+    /usr/bin/xfce4-session &
+    session_pid=$!
 
-xfce_pid=$!
+    sleep 6
 
-sleep 5
+    echo "[5/5] Starting XFCE window manager"
 
-if ! kill -0 "$xfce_pid" 2>/dev/null
-then
-  echo "ERROR: XFCE stopped during startup."
-  wait "$xfce_pid"
-  exit 1
-fi
+    /usr/bin/xfwm4 \
+      --replace \
+      --compositor=off &
 
-echo "XFCE process is running."
+    wait "$session_pid"
+  ' &
 
-wait "$xfce_pid"
+desktop_pid=$!
+
+wait "$desktop_pid"
