@@ -1,4 +1,0 @@
-# Optional lines to add to the original .gitignore
-*.ext2
-*.ext2.c*.txt
-*.ext2.meta
