@@ -1,6 +1,6 @@
 const CHEERPX_URL = "https://cxrtnc.leaningtech.com/1.2.8/cx.esm.js";
-const DISK_URL = new URL("./xfce.ext2?v=14", window.location.href).href;
-const OVERLAY_NAME = "webvm-xfce-overlay-v14";
+const DISK_URL = new URL("./xfce.ext2?v=15", window.location.href).href;
+const OVERLAY_NAME = "webvm-xfce-overlay-v15";
 const COI_RELOAD_KEY = "webvm-xfce-coi-reloaded-v12";
 
 const statusElement = document.getElementById("status");
@@ -39,7 +39,7 @@ async function ensureCrossOriginIsolation() {
     throw new Error("This browser does not support the service worker required by CheerpX.");
   }
 
-  await navigator.serviceWorker.register("./coi-sw.js?v=14", { scope: "./" });
+  await navigator.serviceWorker.register("./coi-sw.js?v=15", { scope: "./" });
   await navigator.serviceWorker.ready;
 
   if (sessionStorage.getItem(COI_RELOAD_KEY) === "1") {
@@ -159,7 +159,7 @@ async function startVm(withNetwork) {
         canvas.hidden = false;
         consoleElement.hidden = true;
         logsButton.textContent = "Logs";
-        setStatus(`XFCE desktop active on VT ${index}.`);
+        setStatus(`Graphical VT ${index} selected. Waiting for XFCE...`);
         canvas.focus();
       }
     });
@@ -171,9 +171,9 @@ async function startVm(withNetwork) {
 
     splash.hidden = true;
     canvas.focus();
-    setStatus(withNetwork ? "Linux launched. Waiting for graphical VT and network..." : "Linux launched. Waiting for graphical VT...");
+    setStatus(withNetwork ? "Booting Alpine, XFCE and network..." : "Booting Alpine and XFCE...");
 
-    cx.run("/usr/local/bin/webvm-xfce-start", [], {
+    cx.run("/sbin/init", [], {
       uid: 0,
       gid: 0,
       cwd: "/",
