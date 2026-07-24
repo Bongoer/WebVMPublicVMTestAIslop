@@ -16,6 +16,7 @@ RUN apk update && apk add --no-cache \
     xorg-server \
     xf86-input-libinput \
     xrandr \
+    xinit \
     lightdm \
     lightdm-gtk-greeter \
     xfce4 \

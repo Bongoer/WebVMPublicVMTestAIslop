@@ -1,6 +1,6 @@
 const CHEERPX_URL = "https://cxrtnc.leaningtech.com/1.2.8/cx.esm.js";
 const DISK_URL = new URL("./xfce.ext2", window.location.href).href;
-const OVERLAY_NAME = "webvm-xfce-overlay-v4";
+const OVERLAY_NAME = "webvm-xfce-overlay-v6";
 const COI_RELOAD_KEY = "webvm-xfce-coi-reloaded-v1";
 
 const statusElement = document.getElementById("status");
@@ -39,7 +39,7 @@ async function ensureCrossOriginIsolation() {
     throw new Error("This browser does not support the service worker required by CheerpX.");
   }
 
-  await navigator.serviceWorker.register("./coi-sw.js", { scope: "./" });
+  await navigator.serviceWorker.register("./coi-sw.js?v=6", { scope: "./" });
   await navigator.serviceWorker.ready;
 
   if (sessionStorage.getItem(COI_RELOAD_KEY) === "1") {
@@ -139,7 +139,6 @@ async function startVm(withNetwork) {
       mounts: [
         { type: "ext2", path: "/", dev: overlayDevice },
         { type: "devs", path: "/dev" },
-        { type: "devpts", path: "/dev/pts" },
         { type: "proc", path: "/proc" }
       ]
     };
@@ -153,10 +152,11 @@ async function startVm(withNetwork) {
     cx.setConsole(consoleElement);
 
     resizeDisplay();
+    let completeConsoleSwitch = () => {};
 
-    let completeConsoleSwitch;
     completeConsoleSwitch = cx.setActivateConsole((index) => {
       completeConsoleSwitch(index);
+      setStatus("XFCE display active.");
     });
     window.addEventListener("resize", scheduleResize);
     canvas.addEventListener("pointerdown", () => canvas.focus());

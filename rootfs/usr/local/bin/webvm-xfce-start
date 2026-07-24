@@ -1,13 +1,30 @@
 #!/bin/sh
+set -x
 
-mkdir -p /run/dbus /run/lightdm /var/log/lightdm /tmp/runtime-user
+export HOME=/home/user
+export USER=user
+export LOGNAME=user
+export SHELL=/bin/sh
+export DISPLAY=:0
+export XDG_RUNTIME_DIR=/tmp/runtime-user
+
+mkdir -p /tmp/.X11-unix
+mkdir -p /tmp/runtime-user
+mkdir -p /run/dbus
+
 chmod 1777 /tmp
+chmod 700 /tmp/runtime-user
 chown user:user /tmp/runtime-user
+chown user:user /home/user
 
 dbus-uuidgen --ensure=/etc/machine-id
 
-if [ ! -S /run/dbus/system_bus_socket ]; then
-  dbus-daemon --system --fork
-fi
-
-exec /usr/sbin/lightdm --debug
+exec su -s /bin/sh user -c '\
+HOME=/home/user \
+USER=user \
+LOGNAME=user \
+DISPLAY=:0 \
+XDG_RUNTIME_DIR=/tmp/runtime-user \
+dbus-run-session \
+xinit /usr/bin/startxfce4 -- \
+/usr/bin/Xorg :0 vt7 -keeptty -nolisten tcp'
