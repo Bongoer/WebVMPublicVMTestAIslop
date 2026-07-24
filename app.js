@@ -1,6 +1,6 @@
 const CHEERPX_URL = "https://cxrtnc.leaningtech.com/1.2.8/cx.esm.js";
 const DISK_URL = new URL("./xfce.ext2", window.location.href).href;
-const OVERLAY_NAME = "webvm-xfce-overlay-v2";
+const OVERLAY_NAME = "webvm-xfce-overlay-v4";
 const COI_RELOAD_KEY = "webvm-xfce-coi-reloaded-v1";
 
 const statusElement = document.getElementById("status");
@@ -139,6 +139,7 @@ async function startVm(withNetwork) {
       mounts: [
         { type: "ext2", path: "/", dev: overlayDevice },
         { type: "devs", path: "/dev" },
+        { type: "devpts", path: "/dev/pts" },
         { type: "proc", path: "/proc" }
       ]
     };
@@ -164,7 +165,7 @@ async function startVm(withNetwork) {
     canvas.focus();
     setStatus(withNetwork ? "Starting XFCE and network..." : "Starting XFCE...");
 
-    cx.run("/sbin/init", [], {
+    cx.run("/usr/local/bin/webvm-xfce-start", [], {
       uid: 0,
       gid: 0,
       cwd: "/",

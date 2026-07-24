@@ -51,7 +51,7 @@ RUN adduser -D -s /bin/bash user && \
 
 COPY rootfs/ /
 
-RUN chmod 755 /usr/local/bin/webvm-resize && \
+RUN chmod 755 /usr/local/bin/webvm-resize /usr/local/bin/webvm-xfce-start && \
     chown -R user:user /home/user
 
 ENV HOME=/root

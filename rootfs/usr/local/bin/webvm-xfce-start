@@ -1,0 +1,13 @@
+#!/bin/sh
+
+mkdir -p /run/dbus /run/lightdm /var/log/lightdm /tmp/runtime-user
+chmod 1777 /tmp
+chown user:user /tmp/runtime-user
+
+dbus-uuidgen --ensure=/etc/machine-id
+
+if [ ! -S /run/dbus/system_bus_socket ]; then
+  dbus-daemon --system --fork
+fi
+
+exec /usr/sbin/lightdm --debug
