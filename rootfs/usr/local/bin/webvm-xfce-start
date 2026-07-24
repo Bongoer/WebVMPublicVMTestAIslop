@@ -1,0 +1,47 @@
+#!/bin/sh
+set -u
+
+export HOME=/root
+export USER=root
+export LOGNAME=root
+export SHELL=/bin/sh
+export DISPLAY=:0
+
+echo "[1/4] Preparing Linux graphical environment"
+
+mkdir -p /tmp/.X11-unix
+mkdir -p /tmp/runtime-user
+
+chmod 1777 /tmp
+chmod 1777 /tmp/.X11-unix
+chmod 700 /tmp/runtime-user
+
+chown user:user /tmp/runtime-user
+chown -R user:user /home/user
+
+rm -f /tmp/.X11-unix/X0
+rm -f /tmp/.X0-lock
+
+echo "[2/4] Detecting browser display hardware"
+
+if [ -x /sbin/udevd ]; then
+  /sbin/udevd --daemon || true
+fi
+
+if [ -x /sbin/udevadm ]; then
+  timeout 10 /sbin/udevadm trigger --action=add || true
+  timeout 15 /sbin/udevadm settle || true
+fi
+
+echo "[3/4] Starting graphical display on VT7"
+
+exec /usr/bin/xinit \
+  /usr/local/bin/webvm-xfce-client \
+  -- \
+  /usr/bin/Xorg \
+  :0 \
+  vt7 \
+  -keeptty \
+  -noreset \
+  -nolisten tcp \
+  -ac

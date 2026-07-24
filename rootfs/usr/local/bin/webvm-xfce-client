@@ -1,0 +1,14 @@
+#!/bin/sh
+
+echo "[4/4] Launching XFCE desktop"
+
+exec su-exec user env \
+  HOME=/home/user \
+  USER=user \
+  LOGNAME=user \
+  SHELL=/bin/sh \
+  DISPLAY=:0 \
+  XDG_RUNTIME_DIR=/tmp/runtime-user \
+  XDG_CURRENT_DESKTOP=XFCE \
+  DESKTOP_SESSION=xfce \
+  dbus-run-session /usr/bin/xfce4-session
