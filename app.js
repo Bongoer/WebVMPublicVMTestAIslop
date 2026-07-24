@@ -1,7 +1,7 @@
 const CHEERPX_URL = "https://cxrtnc.leaningtech.com/1.2.8/cx.esm.js";
-const DISK_URL = new URL("./xfce.ext2?v=11", window.location.href).href;
-const OVERLAY_NAME = "webvm-xfce-overlay-v11";
-const COI_RELOAD_KEY = "webvm-xfce-coi-reloaded-v1";
+const DISK_URL = new URL("./xfce.ext2?v=12", window.location.href).href;
+const OVERLAY_NAME = "webvm-xfce-overlay-v12";
+const COI_RELOAD_KEY = "webvm-xfce-coi-reloaded-v12";
 
 const statusElement = document.getElementById("status");
 const canvas = document.getElementById("display");
@@ -39,7 +39,7 @@ async function ensureCrossOriginIsolation() {
     throw new Error("This browser does not support the service worker required by CheerpX.");
   }
 
-  await navigator.serviceWorker.register("./coi-sw.js?v=6", { scope: "./" });
+  await navigator.serviceWorker.register("./coi-sw.js?v=12", { scope: "./" });
   await navigator.serviceWorker.ready;
 
   if (sessionStorage.getItem(COI_RELOAD_KEY) === "1") {
@@ -149,21 +149,29 @@ async function startVm(withNetwork) {
 
     setStatus("Starting the virtual machine...");
     cx = await api.Linux.create(options);
+
+    let finishVtSwitch = () => {};
+
+    finishVtSwitch = cx.setActivateConsole((index) => {
+      finishVtSwitch(index);
+
+      if (index >= 6) {
+        canvas.hidden = false;
+        consoleElement.hidden = true;
+        logsButton.textContent = "Logs";
+        setStatus(`XFCE desktop active on VT ${index}.`);
+        canvas.focus();
+      }
+    });
     cx.setConsole(consoleElement);
 
     resizeDisplay();
-    let completeConsoleSwitch = () => {};
-
-    completeConsoleSwitch = cx.setActivateConsole((index) => {
-      completeConsoleSwitch(index);
-      setStatus("XFCE display active.");
-    });
     window.addEventListener("resize", scheduleResize);
     canvas.addEventListener("pointerdown", () => canvas.focus());
 
     splash.hidden = true;
     canvas.focus();
-    setStatus(withNetwork ? "Linux started. Waiting for XFCE and network..." : "Linux started. Waiting for XFCE display...");
+    setStatus(withNetwork ? "Linux launched. Waiting for graphical VT and network..." : "Linux launched. Waiting for graphical VT...");
 
     cx.run("/usr/local/bin/webvm-xfce-start", [], {
       uid: 0,

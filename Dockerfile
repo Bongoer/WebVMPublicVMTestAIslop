@@ -16,6 +16,8 @@ RUN apk update && apk add --no-cache \
     xorg-server \
     xf86-input-libinput \
     xrandr \
+    mcookie \
+    xauth \
     mesa-gl \
     mesa-egl \
     mesa-gbm \
