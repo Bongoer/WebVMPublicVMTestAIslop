@@ -1,0 +1,110 @@
+name: Build and deploy XFCE browser VM
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build 32-bit Alpine XFCE container
+        run: |
+          docker build \
+            --platform=linux/386 \
+            --tag webvm-xfce \
+            .
+
+      - name: Export Linux root filesystem
+        run: |
+          docker create --name webvm-xfce-rootfs webvm-xfce
+          mkdir -p exported-rootfs
+          docker export webvm-xfce-rootfs |
+            sudo tar --numeric-owner -xpf - -C exported-rootfs
+
+      - name: Add VM network configuration
+        run: |
+          sudo rm -f exported-rootfs/etc/resolv.conf
+          printf '%s\n' 'nameserver 8.8.8.8' |
+            sudo tee exported-rootfs/etc/resolv.conf >/dev/null
+
+          printf '%s\n' 'webvm' |
+            sudo tee exported-rootfs/etc/hostname >/dev/null
+
+          printf '%s\n' \
+            '127.0.0.1 localhost' \
+            '127.0.1.1 webvm' |
+            sudo tee exported-rootfs/etc/hosts >/dev/null
+
+      - name: Check root filesystem size
+        run: |
+          ROOTFS_BYTES="$(sudo du -sb exported-rootfs | cut -f1)"
+          MAX_BYTES=$((760 * 1024 * 1024))
+
+          echo "Root filesystem size: $ROOTFS_BYTES bytes"
+
+          if [ "$ROOTFS_BYTES" -gt "$MAX_BYTES" ]; then
+            echo "::error::The XFCE root filesystem is too large for the 850M disk."
+            exit 1
+          fi
+
+      - name: Create XFCE ext2 disk
+        run: |
+          sudo mkfs.ext2 \
+            -F \
+            -b 4096 \
+            -d exported-rootfs \
+            xfce.ext2 \
+            850M
+
+          sudo e2fsck -fn xfce.ext2
+
+      - name: Assemble plain HTML site
+        run: |
+          mkdir -p _site
+          cp index.html app.js styles.css coi-sw.js _site/
+          cp xfce.ext2 _site/
+          touch _site/.nojekyll
+
+          SITE_BYTES="$(du -sb _site | cut -f1)"
+          echo "Published site size: $SITE_BYTES bytes"
+
+          if [ "$SITE_BYTES" -gt 990000000 ]; then
+            echo "::error::The GitHub Pages site is larger than 990 MB."
+            exit 1
+          fi
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

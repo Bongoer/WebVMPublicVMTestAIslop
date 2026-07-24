@@ -1,0 +1,181 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #080a0f;
+  color: #f4f6fb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #080a0f;
+}
+
+body {
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.toolbar {
+  z-index: 3;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+  padding: 10px max(12px, env(safe-area-inset-right)) 10px max(12px, env(safe-area-inset-left));
+  background: #11151d;
+  border-bottom: 1px solid #2a303b;
+}
+
+.title-group {
+  display: grid;
+  gap: 2px;
+  min-width: 180px;
+}
+
+.title-group strong {
+  font-size: 16px;
+}
+
+#status {
+  color: #aeb7c6;
+  font-size: 12px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+button,
+.button {
+  appearance: none;
+  min-height: 40px;
+  padding: 0 13px;
+  border: 1px solid #3c4656;
+  border-radius: 10px;
+  background: #202733;
+  color: #f7f9fc;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+button:not(:disabled):active,
+.button:active {
+  transform: translateY(1px);
+}
+
+.accent {
+  border-color: #3576df;
+  background: #245db6;
+}
+
+#screen {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+#display {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  background: #000;
+  touch-action: none;
+}
+
+#splash {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  padding: 28px;
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(60, 105, 190, 0.25), transparent 36%),
+    #080a0f;
+}
+
+#splash h1 {
+  margin: 0;
+  font-size: clamp(25px, 6vw, 52px);
+}
+
+#splash p {
+  max-width: 620px;
+  margin: 0 auto;
+  color: #b9c2d1;
+  line-height: 1.45;
+}
+
+.credentials {
+  font-size: 13px;
+}
+
+code {
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: #1e2632;
+  color: #fff;
+}
+
+#console {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 14px;
+  overflow: auto;
+  background: rgba(0, 0, 0, 0.94);
+  color: #d8ffd8;
+  white-space: pre-wrap;
+  font: 12px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  body {
+    grid-template-rows: auto 1fr;
+  }
+
+  .toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  button,
+  .button {
+    flex: 1 1 auto;
+  }
+}

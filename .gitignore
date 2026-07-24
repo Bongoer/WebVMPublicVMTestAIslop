@@ -1,0 +1,4 @@
+_site/
+exported-rootfs/
+xfce.ext2
+*.zip

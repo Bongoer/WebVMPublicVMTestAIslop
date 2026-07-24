@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111318">
+  <title>XFCE Browser VM</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="toolbar">
+    <div class="title-group">
+      <strong>XFCE Browser VM</strong>
+      <span id="status">Preparing browser security...</span>
+    </div>
+
+    <div class="actions">
+      <a id="login-link" class="button accent" target="_blank" rel="noopener" hidden>
+        Open Tailscale login
+      </a>
+      <button id="start" disabled>Start VM</button>
+      <button id="start-network" disabled>Start + Network</button>
+      <button id="logs">Logs</button>
+      <button id="reset" disabled>Reset VM</button>
+    </div>
+  </header>
+
+  <main id="screen">
+    <canvas id="display" tabindex="0" aria-label="Linux virtual machine display"></canvas>
+
+    <section id="splash">
+      <h1>Linux XFCE in your browser</h1>
+      <p>Every visitor gets a separate virtual machine stored in their own browser.</p>
+      <p class="credentials">Desktop login is automatic. User password: <code>webvm</code></p>
+    </section>
+
+    <pre id="console" tabindex="0" hidden></pre>
+  </main>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

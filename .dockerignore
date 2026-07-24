@@ -1,0 +1,8 @@
+.git
+.github
+_site
+exported-rootfs
+xfce.ext2
+*.zip
+README.md
+NUKE-AND-INSTALL.txt

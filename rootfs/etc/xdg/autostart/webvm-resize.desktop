@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=WebVM Screen Resize
+Exec=/usr/local/bin/webvm-resize
+OnlyShowIn=XFCE;
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

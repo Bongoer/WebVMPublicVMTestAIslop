@@ -1,0 +1,5 @@
+UPLOAD webvm-xfce-fixed.zip TO THE REPOSITORY ROOT, THEN RUN:
+
+set -e; cp webvm-xfce-fixed.zip /tmp/webvm-xfce-fixed.zip; find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +; unzip -o /tmp/webvm-xfce-fixed.zip -d .; git add -A; git commit -m "Replace repository with fixed plain HTML XFCE WebVM"; git push
+
+This preserves the .git directory but deletes every other old repository file.
